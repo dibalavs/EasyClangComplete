@@ -55,7 +55,7 @@ if not log.hasHandlers():
 
 handle_plugin_loaded_function = None
 handle_plugin_unloaded_function = None
-
+view_config_manager = None
 
 def plugin_loaded():
     """Called right after sublime api is ready to use.
@@ -71,6 +71,24 @@ def plugin_unloaded():
     """Called right before the package was unloaded."""
     handle_plugin_unloaded_function()
 
+class easy_clang_goto_declarationCommand(sublime_plugin.TextCommand):
+    """ Handle easy_clan_goto_declaration command """
+
+    def run(self, edit):
+        """Run goto delcaration command.
+
+        Navigates to delcaration of entity located by current position
+        of cursor.
+        """
+        if not view_config_manager or not Tools.is_valid_view(self.view):
+            return
+
+        location = view_config_manager.trigger_get_reference(self.view)
+        if location:
+            loc = "{0}:{1}:{2}".format(location.file.name, location.line, location.column)
+            log.debug("reference: file:%s", loc)
+
+            sublime.active_window().open_file(loc, sublime.ENCODED_POSITION)
 
 class CleanCmakeCommand(sublime_plugin.TextCommand):
     """Command that cleans cmake build directory."""
@@ -144,6 +162,9 @@ class EasyClangComplete(sublime_plugin.EventListener):
         self.on_settings_changed()
         # init view config manager
         self.view_config_manager = ViewConfigManager()
+        global view_config_manager
+        view_config_manager = self.view_config_manager
+
         # As the plugin has just loaded, we might have missed an activation
         # event for the active view so completion will not work for it until
         # re-activated. Force active view initialization in that case.

@@ -307,7 +307,6 @@ class ViewConfigCache(dict):
     """Singleton for view configurations cache."""
     pass
 
-
 class ViewConfigManager(object):
     """A utility class that stores a cache of all view configurations."""
 
@@ -388,6 +387,14 @@ class ViewConfigManager(object):
                 gc.collect()
             ViewConfigManager.__cancel_timer(v_id)
         return v_id
+
+    def trigger_get_reference(self, view):
+        config = self.get_from_cache(view)
+        if not config:
+            log.debug("Config is not ready yet. No reference is available.")
+            return None
+
+        return config.completer.get_reference(view)
 
     def trigger_info(self, view, tooltip_request):
         """A proxy function to handle getting info from completer.
