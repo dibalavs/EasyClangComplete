@@ -57,6 +57,7 @@ handle_plugin_loaded_function = None
 handle_plugin_unloaded_function = None
 view_config_manager = None
 
+
 def plugin_loaded():
     """Called right after sublime api is ready to use.
 
@@ -71,8 +72,21 @@ def plugin_unloaded():
     """Called right before the package was unloaded."""
     handle_plugin_unloaded_function()
 
+
+class easy_clang_show_infoCommand(sublime_plugin.TextCommand):
+    """Handle easy_clan_show_info command."""
+
+    def run(self, edit):
+        """Run goto delcaration command.
+
+        Show popup window with information about entity
+        located by current position of cursor.
+        """
+        log.debug("show info raised")
+        self.view.run_command("do_show_clang_popup")
+
 class easy_clang_goto_declarationCommand(sublime_plugin.TextCommand):
-    """ Handle easy_clan_goto_declaration command """
+    """Handle easy_clan_goto_declaration command."""
 
     def run(self, edit):
         """Run goto delcaration command.
@@ -85,10 +99,13 @@ class easy_clang_goto_declarationCommand(sublime_plugin.TextCommand):
 
         location = view_config_manager.trigger_get_reference(self.view)
         if location:
-            loc = "{0}:{1}:{2}".format(location.file.name, location.line, location.column)
+            loc = location.file.name
+            loc += ":" + str(location.line)
+            loc += ":" + str(location.column)
             log.debug("reference: file:%s", loc)
 
             sublime.active_window().open_file(loc, sublime.ENCODED_POSITION)
+
 
 class CleanCmakeCommand(sublime_plugin.TextCommand):
     """Command that cleans cmake build directory."""
@@ -411,6 +428,17 @@ class EasyClangComplete(sublime_plugin.EventListener):
                         function=self.view_config_manager.trigger_info,
                         args=[view, tooltip_request])
         EasyClangComplete.thread_pool.new_job(job)
+
+    def on_text_command(self, view, command_name, args):
+
+        if command_name != "easy_clang_show_info":
+            return
+
+        pos = view.sel()
+        if len(pos) < 1:
+                return
+        pos = pos[0].a
+        self.on_hover(view, pos, sublime.HOVER_TEXT)
 
     def on_query_completions(self, view, prefix, locations):
         """Function that is called when user queries completions in the code.
