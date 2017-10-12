@@ -37,6 +37,10 @@ cindex_dict = {
     '6.0': PKG_NAME + ".plugin.clang.cindex50",  # FIXME
 }
 
+include_scopes = (
+    'include.c++',
+    'include.c'
+)
 
 class Completer(BaseCompleter):
     """Encapsulates completions based on libclang.
@@ -258,8 +262,8 @@ class Completer(BaseCompleter):
             if not self.tu:
                 return (tooltip_request, "")
             view = tooltip_request.get_view()
-            (row, col) = SublBridge.cursor_pos(
-                view, tooltip_request.get_trigger_position())
+            point = tooltip_request.get_trigger_position()
+            (row, col) = SublBridge.cursor_pos(view, point)
 
             cursor = self.tu.cursor.from_location(
                 self.tu, self.tu.get_location(view.file_name(), (row, col)))
@@ -273,6 +277,19 @@ class Completer(BaseCompleter):
                 info_details = ClangUtils.build_info_details(
                     cursor.referenced, self.cindex)
                 return (tooltip_request, info_details)
+
+            if view.scope_name(point).rstrip().endswith(include_scopes):
+                region_str = view.substr(view.extract_scope(point))
+                is_relative = region_str.endswith('"')
+                inc_name = region_str.strip("<>\"")
+                basepath = view.file_name() if is_relative else None
+                basepath = path.dirname(basepath) if basepath else None
+                includes = ClangUtils.get_include_locations(
+                    inc_name, basepath, self.tu)
+                info_details = ClangUtils.build_include_info_details(
+                    includes)
+                return (tooltip_request, info_details)
+
             return empty_info
 
     def update(self, view, settings):

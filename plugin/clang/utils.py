@@ -9,6 +9,7 @@ import subprocess
 import html
 
 from os import path
+from os import sep
 
 log = logging.getLogger("ECC")
 
@@ -487,6 +488,61 @@ class ClangUtils:
         if method_cursor.brief_comment:
             result += "<br><br><b>"
             result += method_cursor.brief_comment + "</b>"
+
+        return result
+
+    @staticmethod
+    def get_include_locations(inc_name, relative, tu):
+        """Get list of possible locations for include inc_name.
+
+        Args:
+            inc_name (str): include name to search.
+            relative (str): base path for relative include search.
+            tu       (TranslationUnit)
+        """
+        if sep == '/':
+            inc_name = inc_name.replace('\\', sep)
+        else:
+            inc_name = inc_name.replace('/', sep)
+
+        matches = set()
+        result = []
+
+        for inc in tu.get_includes():
+            name = inc.source.name
+            if name.endswith(inc_name):
+                if relative and not name.startswith(relative):
+                    continue
+
+                #Check case when words have different prefixes
+                #and the same suffixes:
+                #example:
+                # log.h
+                # syslog.h
+                if name[-len(inc_name) - 1].isalnum():
+                    continue
+
+                if not name in matches:
+                    matches.add(name)
+                    result.append(inc.location)
+
+        return result
+
+    @staticmethod
+    def build_include_info_details(includes):
+        """Create popup details for include.
+
+        Args:
+            includes (list of clang.Location): include locations
+        """
+        if len(includes) > 1:
+            result = '<b>Locations:</b><br>'
+        else:
+            result = '<b>Location:</b><br>'
+
+        for inc in includes:
+            result += ClangUtils.link_from_location(inc, inc.file.name)
+            result += "<br>"
 
         return result
 
