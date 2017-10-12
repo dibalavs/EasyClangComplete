@@ -279,15 +279,9 @@ class Completer(BaseCompleter):
                 return (tooltip_request, info_details)
 
             if view.scope_name(point).rstrip().endswith(include_scopes):
-                region_str = view.substr(view.extract_scope(point))
-                is_relative = region_str.endswith('"')
-                inc_name = region_str.strip("<>\"")
-                basepath = view.file_name() if is_relative else None
-                basepath = path.dirname(basepath) if basepath else None
-                includes = ClangUtils.get_include_locations(
-                    inc_name, basepath, self.tu)
-                info_details = ClangUtils.build_include_info_details(
-                    includes)
+                includes = Completer._get_includes_for_pos(
+                    point, view, self.tu)
+                info_details = ClangUtils.build_include_info_details(includes)
                 return (tooltip_request, info_details)
 
             return empty_info
@@ -372,7 +366,37 @@ class Completer(BaseCompleter):
                 if cursor.kind.is_declaration():
                     ref_new = ref.get_definition()
                 return (ref_new or ref).location
+
+            pos = view.sel()
+            if len(pos) < 1:
+                # something is wrong
+                return None
+
+            pos = pos[0].a
+            if view.scope_name(pos).rstrip().endswith(include_scopes):
+                includes = Completer._get_includes_for_pos(pos, view, self.tu)
+                if len(includes) >= 1:
+                    return includes[0]
+
             return None
+
+    @staticmethod
+    def _get_includes_for_pos(pos, view, tu):
+        """Get list of locations for include files referenced by pos.
+
+        Args:
+            pos (sublime:pos): cursor position
+
+        Returns:
+            list(location): list of includes location
+        """
+        region_str = view.substr(view.extract_scope(pos))
+        is_relative = region_str.endswith('"')
+        inc_name = region_str.strip("<>\"")
+        basepath = view.file_name() if is_relative else None
+        basepath = path.dirname(basepath) if basepath else None
+        includes = ClangUtils.get_include_locations(inc_name, basepath, tu)
+        return includes
 
     @staticmethod
     def _cindex_for_version(version):
