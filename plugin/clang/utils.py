@@ -529,7 +529,7 @@ class ClangUtils:
         return result
 
     @staticmethod
-    def build_include_info_details(includes):
+    def build_include_info_details(includes, project_dir):
         """Create popup details for include.
 
         Args:
@@ -541,7 +541,10 @@ class ClangUtils:
             result = '<b>Location:</b><br>'
 
         for inc in includes:
-            result += ClangUtils.link_from_location(inc, inc.file.name)
+            name = inc.file.name
+            if project_dir:
+                name = name.replace(project_dir + sep, "")
+            result += ClangUtils.link_from_location(inc, name)
             result += "<br>"
 
         return result

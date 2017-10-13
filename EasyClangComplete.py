@@ -426,7 +426,7 @@ class EasyClangComplete(sublime_plugin.EventListener):
         job = ThreadJob(name=EasyClangComplete.INFO_JOB_TAG,
                         callback=self.info_finished,
                         function=self.view_config_manager.trigger_info,
-                        args=[view, tooltip_request])
+                        args=[view, tooltip_request, settings])
         EasyClangComplete.thread_pool.new_job(job)
 
     def on_text_command(self, view, command_name, args):
